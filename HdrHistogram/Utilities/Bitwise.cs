@@ -40,7 +40,7 @@ namespace HdrHistogram.Utilities
             ulong testValue = (ulong)value;
             return System.Numerics.BitOperations.LeadingZeroCount(testValue);
 
-        }        
+        }
 #endif
 
         //Code has been tested and taken from :
@@ -50,7 +50,7 @@ namespace HdrHistogram.Utilities
         //http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
 
         /// <summary>
-        /// Imperative implementation of the LeadingZeroCount, when access to the <see cref="System.Numerics.BitOperations.LeadingZeroCount(ulong)"/> is not available.
+        /// Imperative implementation of the LeadingZeroCount, when access to the <c>System.Numerics.BitOperations.LeadingZeroCount(ulong)</c> is not available.
         /// </summary>
         public static class Imperative
         {
