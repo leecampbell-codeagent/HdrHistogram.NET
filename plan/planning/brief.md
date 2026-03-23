@@ -17,7 +17,8 @@ On serialisation-heavy workloads (encoding many histograms), every histogram wri
 
 | File | Change needed |
 |------|---------------|
-| `HdrHistogram/Utilities/ByteBuffer.cs` | Replace `PutInt`, `PutInt(index,value)`, `PutLong`, `PutDouble`, `GetInt`, `GetLong` implementations |
+| `HdrHistogram/Utilities/ByteBuffer.cs` | Replace `PutInt`, `PutInt(index,value)`, `PutLong`, `PutDouble`, `GetInt`, `GetLong`, `GetDouble` implementations; remove dead helper methods |
+| `HdrHistogram/HdrHistogram.csproj` | Add conditional `System.Memory` package reference for `netstandard2.0` |
 | `HdrHistogram.UnitTests/Utilities/ByteBufferTests.cs` | Add round-trip unit tests for all changed methods |
 | `HdrHistogram.Benchmarking/Serialization/ByteBufferBenchmark.cs` (new) | Micro-benchmarks for Put/Get operations |
 | `HdrHistogram.Benchmarking/Serialization/HistogramEncodingBenchmark.cs` (new) | End-to-end encode/decode round-trip benchmark |
@@ -28,7 +29,7 @@ On serialisation-heavy workloads (encoding many histograms), every histogram wri
 - `HdrHistogram/Encoding/HistogramEncoderV2.cs`
 - `HdrHistogram/HistogramEncoding.cs`
 - `HdrHistogram/Encoding/V0Header.cs`, `V1Header.cs`
-- `HdrHistogram/Encoding/IntCountsDecoder.cs`, `LongCountsDecoder.cs`
+- `HdrHistogram/Persistence/IntCountsDecoder.cs`, `HdrHistogram/Persistence/LongCountsDecoder.cs`
 
 ## Acceptance Criteria
 
@@ -43,6 +44,9 @@ On serialisation-heavy workloads (encoding many histograms), every histogram wri
 - Benchmark results show zero `Allocated` bytes for the `Put*`/`Get*` micro-benchmarks after the change.
 - End-to-end benchmark shows a measurable reduction in allocated bytes per encode/decode operation.
 - The `System.Net` using directive (used only for `IPAddress`) is removed from `ByteBuffer.cs` after refactoring.
+- `GetDouble()` reads the big-endian double directly using `BinaryPrimitives.ReadDoubleBigEndian` with no intermediate allocation.
+- The private helper methods `ToInt64`, `CheckedFromBytes`, `CheckByteArgument`, `FromBytes`, and `Int64BitsToDouble` are removed from `ByteBuffer.cs` as dead code after the refactor.
+- A conditional `System.Memory` package reference is added to `HdrHistogram/HdrHistogram.csproj` for `netstandard2.0`, and the project builds successfully on all target frameworks.
 
 ## Test Strategy
 
@@ -81,6 +85,8 @@ ByteBufferBenchmark
   GetInt      — calls GetInt in a loop, resetting Position each iteration
   PutLong     — calls PutLong in a loop, resetting Position each iteration
   GetLong     — calls GetLong in a loop, resetting Position each iteration
+  PutDouble   — calls PutDouble in a loop, resetting Position each iteration
+  GetDouble   — calls GetDouble in a loop, resetting Position each iteration
 ```
 
 Pre-allocate the `ByteBuffer` instance in `[GlobalSetup]`.
