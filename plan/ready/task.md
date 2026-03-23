@@ -129,7 +129,7 @@ Follows the benchmark-driven development process from `spec/tech-standards/testi
 
 ## Phase 3 — Benchmark Validation
 
-- [ ] **Run post-change benchmarks and save results to `plan/benchmarks/post-change.md`**
+- [x] **Run post-change benchmarks and save results to `plan/benchmarks/post-change.md`**
   - Commands (identical configuration to baseline):
     ```
     dotnet run -c Release --project HdrHistogram.Benchmarking/ -- --filter '*ByteBufferBenchmark*' --exporters json
@@ -140,7 +140,7 @@ Follows the benchmark-driven development process from `spec/tech-standards/testi
   - Content: Same table format as `baseline.md`
   - Verify: File exists; `Allocated` column for `Put*`/`Get*` micro-benchmarks shows `0 B`
 
-- [ ] **Generate comparison in `plan/benchmarks/comparison.md`**
+- [x] **Generate comparison in `plan/benchmarks/comparison.md`**
   - File: `plan/benchmarks/comparison.md` (new file)
   - Why: Required by the brief and testing standards to document whether the change achieved its non-functional goals
   - Content must include:
@@ -148,6 +148,22 @@ Follows the benchmark-driven development process from `spec/tech-standards/testi
     - Summary: which metrics improved, which regressed (if any), which are unchanged
     - Verdict: does the data support the change? (expected: yes — zero allocation for micro-benchmarks, reduced allocation for end-to-end)
   - Verify: File exists and contains a verdict section
+
+---
+
+## Phase 4 — Code Review Fixes
+
+- [ ] **Replace magic numbers with `sizeof()` in `HdrHistogram/Utilities/ByteBuffer.cs`**
+  - File: `HdrHistogram/Utilities/ByteBuffer.cs`
+  - Why: The existing `GetShort()` method uses `Position += sizeof(short)` (consistent with the codebase style); the new `Get*`/`Put*` methods use bare literals `4` and `8`, creating an inconsistency
+  - Change: Replace `Position += 4` with `Position += sizeof(int)` in `PutInt(int value)` and `GetInt()`; replace `Position += 8` with `Position += sizeof(long)` in `PutLong`, `GetLong`, `PutDouble`, `GetDouble`; the `Span<byte>` slice size arguments should also use the `sizeof()` equivalent
+  - Verify: `dotnet build` passes; no bare `+= 4` or `+= 8` remain in the refactored methods
+
+- [ ] **Add missing `double.MinValue` (and special value) test cases in `ByteBufferTests.cs`**
+  - File: `HdrHistogram.UnitTests/Utilities/ByteBufferTests.cs`
+  - Why: Every other round-trip test includes `MinValue`; omitting it from the double test is a coverage gap; `double.NaN` is also used in histograms and must survive a round-trip
+  - Change: Add `[InlineData(double.MinValue)]`, `[InlineData(double.NaN)]`, `[InlineData(double.PositiveInfinity)]`, `[InlineData(double.NegativeInfinity)]` to `PutDouble_and_GetDouble_round_trip_returns_original_value`; use `value.Should().Be(expected)` — for NaN use `double.IsNaN(result).Should().BeTrue()`
+  - Verify: `dotnet test --filter "FullyQualifiedName~ByteBufferTests"` passes all tests including the new cases
 
 ---
 
