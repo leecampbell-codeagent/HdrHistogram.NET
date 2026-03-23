@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FluentAssertions;
 using HdrHistogram.Utilities;
 using Xunit;
 
@@ -30,6 +31,66 @@ namespace HdrHistogram.UnitTests.Utilities
             int bytesRead = buffer.ReadFrom(stream, totalBytes);
 
             Assert.Equal(totalBytes, bytesRead);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(-1)]
+        [InlineData(int.MaxValue)]
+        [InlineData(int.MinValue)]
+        public void PutInt_and_GetInt_round_trip_returns_original_value(int expected)
+        {
+            var buffer = ByteBuffer.Allocate(4);
+            buffer.PutInt(expected);
+            buffer.Position = 0;
+            var result = buffer.GetInt();
+            result.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(-1)]
+        [InlineData(int.MaxValue)]
+        [InlineData(int.MinValue)]
+        public void PutInt_at_index_and_GetInt_round_trip_returns_original_value(int expected)
+        {
+            var buffer = ByteBuffer.Allocate(8);
+            buffer.PutInt(0, expected);
+            buffer.Position.Should().Be(0);
+            var result = buffer.GetInt();
+            result.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(0L)]
+        [InlineData(1L)]
+        [InlineData(-1L)]
+        [InlineData(long.MaxValue)]
+        [InlineData(long.MinValue)]
+        public void PutLong_and_GetLong_round_trip_returns_original_value(long expected)
+        {
+            var buffer = ByteBuffer.Allocate(8);
+            buffer.PutLong(expected);
+            buffer.Position = 0;
+            var result = buffer.GetLong();
+            result.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(1.0)]
+        [InlineData(-1.0)]
+        [InlineData(double.MaxValue)]
+        [InlineData(double.Epsilon)]
+        public void PutDouble_and_GetDouble_round_trip_returns_original_value(double expected)
+        {
+            var buffer = ByteBuffer.Allocate(8);
+            buffer.PutDouble(expected);
+            buffer.Position = 0;
+            var result = buffer.GetDouble();
+            result.Should().Be(expected);
         }
 
         /// <summary>
